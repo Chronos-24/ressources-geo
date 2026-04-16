@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Migrations en Méditerranée 2014-2024</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #ffffff;
+    color: #333;
+    padding: 16px;
+  }
+  .titre {
+    font-size: 14px;
+    font-weight: bold;
+    color: #222;
+    margin-bottom: 3px;
+  }
+  .source {
+    font-size: 11px;
+    color: #777;
+    margin-bottom: 12px;
+  }
+  .legende {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 14px;
+    font-size: 12px;
+    color: #555;
+  }
+  .legende span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .leg-bar {
+    width: 22px;
+    height: 12px;
+    background: rgba(59,139,212,0.75);
+    border-radius: 2px;
+    display: inline-block;
+  }
+  .leg-line {
+    width: 22px;
+    height: 3px;
+    background: #D85A30;
+    display: inline-block;
+    border-radius: 2px;
+  }
+  .chart-wrapper {
+    position: relative;
+    width: 100%;
+    height: 300px;
+  }
+  .note {
+    font-size: 11px;
+    color: #777;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<p class="titre">Migrations en Méditerranée : des arrivées variables, une mortalité toujours élevée</p>
+<p class="source">Sources : OIM, UNHCR, Frontex — données annuelles 2014-2024</p>
+
+<div class="legende">
+  <span><span class="leg-bar"></span> Arrivées (axe gauche)</span>
+  <span><span class="leg-line"></span> Morts ou disparus (axe droit)</span>
+</div>
+
+<div class="chart-wrapper">
+  <canvas id="migChart" role="img" aria-label="Graphique des arrivées et décès de migrants en Méditerranée de 2014 à 2024. Pic d'arrivées en 2015 avec plus d'un million de personnes. La mortalité reste élevée sur toute la période, avec un nouveau pic en 2023."></canvas>
+</div>
+
+<p class="note">Les arrivées fluctuent selon les années, mais la mortalité en Méditerranée reste dramatiquement élevée. Après le pic exceptionnel de 2015, les flux ont progressivement remonté jusqu'en 2023 — année la plus meurtrière récente — avant de refluer en 2024, sans retour à la situation d'avant-crise. La Méditerranée demeure la route migratoire la plus meurtrière au monde.</p>
+
+<script>
+const labels   = ['2014','2015','2016','2017','2018','2019','2020','2021','2022','2023','2024'];
+const arrivals = [216054,1015078,362753,172301,69067,123700,95800,123700,159800,270000,187337];
+const deaths   = [612,2692,712,5520,452,1885,1417,2059,2406,3105,2333];
+
+const barColors = arrivals.map((v, i) => {
+  if (i === 1) return 'rgba(59,139,212,0.9)';
+  if (i === 9) return 'rgba(59,139,212,0.85)';
+  return 'rgba(59,139,212,0.65)';
+});
+
+new Chart(document.getElementById('migChart'), {
+  data: {
+    labels,
+    datasets: [
+      {
+        type: 'bar',
+        label: 'Arrivées',
+        data: arrivals,
+        backgroundColor: barColors,
+        borderColor: '#3B8BD4',
+        borderWidth: 1,
+        yAxisID: 'yLeft',
+        order: 2
+      },
+      {
+        type: 'line',
+        label: 'Morts ou disparus',
+        data: deaths,
+        borderColor: '#D85A30',
+        backgroundColor: 'rgba(216,90,48,0.08)',
+        pointBackgroundColor: '#D85A30',
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        borderWidth: 2.5,
+        tension: 0.35,
+        fill: false,
+        yAxisID: 'yRight',
+        order: 1
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#fff',
+        borderColor: 'rgba(0,0,0,0.12)',
+        borderWidth: 1,
+        titleColor: '#333',
+        bodyColor: '#444',
+        padding: 10,
+        callbacks: {
+          label: ctx => {
+            const v = ctx.raw;
+            if (ctx.datasetIndex === 0)
+              return ' Arrivées : ' + v.toLocaleString('fr-FR');
+            return ' Morts/disparus : ' + v.toLocaleString('fr-FR');
+          },
+          afterBody: ctx => {
+            const yr = ctx[0]?.label;
+            if (['2019','2020','2021','2022'].includes(yr))
+              return ['', '~ estimation approchée'];
+            return [];
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: 'rgba(0,0,0,0.06)' },
+        ticks: { color: '#555', font: { size: 11 }, autoSkip: false, maxRotation: 0 }
+      },
+      yLeft: {
+        position: 'left',
+        grid: { color: 'rgba(0,0,0,0.06)' },
+        title: { display: true, text: 'Arrivées', color: '#3B8BD4', font: { size: 11 } },
+        ticks: {
+          color: '#555',
+          font: { size: 11 },
+          callback: v => v >= 1000000
+            ? (v/1000000).toFixed(1) + ' M'
+            : v >= 1000 ? Math.round(v/1000) + ' k' : v
+        }
+      },
+      yRight: {
+        position: 'right',
+        grid: { drawOnChartArea: false },
+        title: { display: true, text: 'Morts / disparus', color: '#D85A30', font: { size: 11 } },
+        ticks: {
+          color: '#555',
+          font: { size: 11 },
+          callback: v => v.toLocaleString('fr-FR')
+        }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
